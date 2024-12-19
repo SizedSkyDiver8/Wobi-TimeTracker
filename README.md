@@ -74,7 +74,7 @@ Before running the backend, you need to create two files in the `backend` folder
        "type": "check-in OR check-out",
        "timestamp": "00:00:00",
        "date": "01-01-2000",
-       "status": "work" //There can be 3 statuses: work, holiday and sick day
+       "status": "work" //There can be 3 statuses: work, holiday or sick day
      }
    ]
    ```

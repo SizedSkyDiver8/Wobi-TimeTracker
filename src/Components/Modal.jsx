@@ -91,6 +91,7 @@ export default function BasicModal({
     setCalendarSelector(false);
   };
 
+  // Edit log
   const handleSave = async () => {
     const formatTime = (time) => {
       if (/^\d{2}:\d{2}$/.test(time)) {

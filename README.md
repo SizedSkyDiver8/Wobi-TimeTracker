@@ -18,6 +18,8 @@ Make sure you have the following installed on your system:
    cd your-repository
    ```
 2. Install the dependencies for the fronted:
+
+    ```bash 
    `npm install`
    `npm install react-spinners --save`
    `npm install @mui/material @emotion/react @emotion/styled`
@@ -26,6 +28,7 @@ Make sure you have the following installed on your system:
    `npm install @mui/x-date-pickers @mui/material @emotion/react @emotion/styled @mui/icons-material dayjs`
    `npm install axios`
    `npm install chart.js react-chartjs-2`
+    ```
 
 3. move to the backend folder
    `cd ./backend`

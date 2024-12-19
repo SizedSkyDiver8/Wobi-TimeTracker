@@ -7,6 +7,8 @@ import close from "../assets/close.png";
 import TimeSelector from "./TimeSelector";
 import CalendarSelector from "./CalendarSelector";
 import dayjs from "dayjs";
+import calendar from "../assets/calendar.png";
+import clock from "../assets/clock.png";
 
 const style = {
   position: "absolute",
@@ -29,14 +31,13 @@ export default function BasicModal({
 }) {
   const [formCheckIn, setFformCheckIn] = useState({});
   const [formCheckOut, setFformCheckOut] = useState({});
-  const [status, setStatus] = useState("status"); // State for Status
+  const [status, setStatus] = useState("status");
   const [clockSelector, setClockSelector] = useState(false);
   const [calendarSelector, setCalendarSelector] = useState(false);
   const [editingLog, setEditingLog] = useState(""); // "check-in" or "check-out"
   const [error, setError] = useState("");
-  const [minCheckOutDate, setMinCheckOutDate] = useState(dayjs()); // Default to today
+  const [minCheckOutDate, setMinCheckOutDate] = useState(dayjs());
 
-  // Update form states when logData changes
   useEffect(() => {
     const defaultLog = {
       username: "",
@@ -48,7 +49,7 @@ export default function BasicModal({
     if (logData && logData.type === "check-in") {
       setFformCheckIn({ ...defaultLog, ...logData });
       setFformCheckOut({ ...defaultLog, ...secondLog });
-      setStatus(secondLog?.status || "status"); // Existing status or default
+      setStatus(secondLog?.status || "status");
     } else {
       setFformCheckIn({ ...defaultLog, ...secondLog });
       setFformCheckOut({ ...defaultLog, ...logData });
@@ -61,6 +62,15 @@ export default function BasicModal({
       setMinCheckOutDate(dayjs(formCheckIn.date, "DD-MM-YYYY"));
     }
   }, [formCheckIn.date]);
+
+  const validateTimestamp = (timestamp) => {
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
+    return timeRegex.test(timestamp);
+  };
+
+  const validateDate = (date) => {
+    return dayjs(date, "DD-MM-YYYY", true).isValid();
+  };
 
   const handleTimeSelect = (selectedTime) => {
     if (editingLog === "check-in") {
@@ -82,14 +92,38 @@ export default function BasicModal({
   };
 
   const handleSave = async () => {
+    const formatTime = (time) => {
+      if (/^\d{2}:\d{2}$/.test(time)) {
+        return `${time}:00`;
+      }
+      return time;
+    };
+    const formattedCheckInTime = formatTime(formCheckIn.timestamp);
+    const formattedCheckOutTime = formatTime(formCheckOut.timestamp);
     const checkInDateTime = dayjs(
-      `${formCheckIn.date} ${formCheckIn.timestamp}`,
-      "DD-MM-YYYY HH:mm"
+      `${formCheckIn.date} ${formattedCheckInTime}`,
+      "DD-MM-YYYY HH:mm:ss"
     );
     const checkOutDateTime = dayjs(
-      `${formCheckOut.date} ${formCheckOut.timestamp}`,
-      "DD-MM-YYYY HH:mm"
+      `${formCheckOut.date} ${formattedCheckOutTime}`,
+      "DD-MM-YYYY HH:mm:ss"
     );
+    if (!validateDate(formCheckIn.date)) {
+      setError("Invalid Check-In date. Please use format DD-MM-YYYY.");
+      return;
+    }
+    if (!validateTimestamp(formattedCheckInTime)) {
+      setError("Invalid Check-In time. Please use format HH:mm or HH:mm:ss.");
+      return;
+    }
+    if (!validateDate(formCheckOut.date)) {
+      setError("Invalid Check-Out date. Please use format DD-MM-YYYY.");
+      return;
+    }
+    if (!validateTimestamp(formattedCheckOutTime)) {
+      setError("Invalid Check-Out time. Please use format HH:mm or HH:mm:ss.");
+      return;
+    }
     if (!status || status === "status") {
       setError("Please select a status for Check-Out.");
       return;
@@ -105,14 +139,15 @@ export default function BasicModal({
       ...formCheckIn,
       username: formCheckIn.username || formCheckOut.username || "",
       type: "check-in",
+      timestamp: formattedCheckInTime,
     };
     const updatedCheckOut = {
       ...formCheckOut,
       username: formCheckIn.username || formCheckOut.username || "",
       type: "check-out",
       status,
+      timestamp: formattedCheckOutTime,
     };
-
     try {
       if (updatedCheckIn.id) {
         const response = await fetch(
@@ -155,168 +190,190 @@ export default function BasicModal({
   };
 
   return (
-    <>
-      <Modal
-        open={openModal}
-        onClose={() => {
-          closeModal(false);
-          setClockSelector(false);
-          setCalendarSelector(false);
-        }}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-      >
-        <Box sx={style}>
-          <button
-            className="bttnCloseModal"
-            onClick={() => {
-              closeModal(false);
-              setClockSelector(false);
-              setCalendarSelector(false);
-            }}
-          >
-            <img src={close} alt="close" />
-          </button>
-          {/* Check-In Section */}
-          <Typography id="modal-modal-title" variant="h6" component="h2">
-            Edit Log
-          </Typography>
-          <Typography id="modal-modal-subTitle" variant="h6" component="p">
-            Check-In
-          </Typography>
-          <Box component="form" sx={{ mt: 2 }} id="Box-log">
-            <label className="editLabel">
-              User:
-              <input
-                type="text"
-                name="username"
-                value={formCheckIn.username || formCheckOut.username || ""}
-                disabled
-              />
-            </label>
+    <Modal
+      open={openModal}
+      onClose={() => {
+        closeModal(false);
+        setClockSelector(false);
+        setCalendarSelector(false);
+      }}
+      aria-labelledby="modal-modal-title"
+      aria-describedby="modal-modal-description"
+    >
+      <Box sx={style}>
+        <button
+          className="bttnCloseModal"
+          onClick={() => {
+            closeModal(false);
+            setClockSelector(false);
+            setCalendarSelector(false);
+          }}
+        >
+          <img src={close} alt="close" />
+        </button>
+        <Typography id="modal-modal-title" variant="h6" component="h2">
+          Edit Log
+        </Typography>
 
-            <label className="editLabel">
-              Timestamp:
-              <input
-                type="text"
-                name="timestamp"
-                value={formCheckIn.timestamp || ""}
-                onClick={() => {
-                  setEditingLog("check-in");
-                  setClockSelector(true);
-                }}
-                autoComplete="off"
-                readOnly
-              />
-            </label>
+        {/* Check-In Section */}
+        <Typography id="modal-modal-subTitle" variant="h6" component="p">
+          Check-In
+        </Typography>
+        <Box component="form" sx={{ mt: 2 }} id="Box-log">
+          <label className="editLabel">
+            User:
+            <input
+              type="text"
+              name="username"
+              value={formCheckIn.username || formCheckOut.username || ""}
+              disabled
+            />
+          </label>
 
-            <label className="editLabel">
-              Date:
-              <input
-                type="text"
-                name="date"
-                value={formCheckIn.date || ""}
-                onClick={() => {
-                  setEditingLog("check-in");
-                  setCalendarSelector(true);
-                }}
-                autoComplete="off"
-                readOnly
-              />
-            </label>
-          </Box>
+          <label className="editLabel">
+            Timestamp:
+            <input
+              className="input-Timestamp"
+              type="text"
+              name="timestamp"
+              value={formCheckIn.timestamp || ""}
+              onChange={(e) =>
+                setFformCheckIn({ ...formCheckIn, timestamp: e.target.value })
+              }
+              autoComplete="off"
+            />
+            <img
+              src={clock}
+              className="clock-icon"
+              onClick={() => {
+                setEditingLog("check-in");
+                setClockSelector(true);
+              }}
+            />
+          </label>
 
-          {/* Check-Out Section */}
-          <Typography
-            id="modal-modal-subTitle-checkOut"
-            variant="h6"
-            component="p"
-          >
-            Check-Out
-          </Typography>
-          <Box component="form" sx={{ mt: 2 }} id="Box-log">
-            <label className="editLabel">
-              Timestamp:
-              <input
-                type="text"
-                name="timestamp"
-                value={formCheckOut.timestamp || ""}
-                onClick={() => {
-                  setEditingLog("check-out");
-                  setClockSelector(true);
-                }}
-                autoComplete="off"
-                readOnly
-              />
-            </label>
+          <label className="editLabel">
+            Date:
+            <input
+              type="text"
+              name="date"
+              value={formCheckIn.date || ""}
+              onChange={(e) =>
+                setFformCheckIn({ ...formCheckIn, date: e.target.value })
+              }
+              autoComplete="off"
+            />
+            <img
+              src={calendar}
+              className="calendar-icon"
+              onClick={() => {
+                setEditingLog("check-in");
+                setCalendarSelector(true);
+              }}
+            />
+          </label>
+        </Box>
 
-            <label className="editLabel">
-              Date:
-              <input
-                type="text"
-                name="date"
-                value={formCheckOut.date || ""}
-                onClick={() => {
-                  setEditingLog("check-out");
-                  setCalendarSelector(true);
-                }}
-                autoComplete="off"
-                readOnly
-              />
-            </label>
+        {/* Check-Out Section */}
+        <Typography
+          id="modal-modal-subTitle-checkOut"
+          variant="h6"
+          component="p"
+        >
+          Check-Out
+        </Typography>
+        <Box component="form" sx={{ mt: 2 }} id="Box-log">
+          <label className="editLabel">
+            Timestamp:
+            <input
+              className="input-Timestamp"
+              type="text"
+              name="timestamp"
+              value={formCheckOut.timestamp || ""}
+              onChange={(e) =>
+                setFformCheckOut({ ...formCheckOut, timestamp: e.target.value })
+              }
+              autoComplete="off"
+            />
+            <img
+              src={clock}
+              className="clock-icon"
+              onClick={() => {
+                setEditingLog("check-out");
+                setClockSelector(true);
+              }}
+            />
+          </label>
 
-            {/* Status Dropdown */}
-            <label className="editLabel">
-              Status:
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="status" disabled>
-                  Select Status
-                </option>
-                <option value="work">Work</option>
-                <option value="holiday">Holiday</option>
-                <option value="sick-day">Sick Day</option>
-              </select>
-            </label>
-          </Box>
+          <label className="editLabel">
+            Date:
+            <input
+              type="text"
+              name="date"
+              value={formCheckOut.date || ""}
+              onChange={(e) =>
+                setFformCheckOut({ ...formCheckOut, date: e.target.value })
+              }
+              autoComplete="off"
+            />
+            <img
+              src={calendar}
+              className="calendar-icon"
+              onClick={() => {
+                setEditingLog("check-out");
+                setCalendarSelector(true);
+              }}
+            />
+          </label>
 
-          {/* Error Display */}
-          {error && <span className="errorSpan">{error}</span>}
+          {/* Status Dropdown */}
+          <label className="editLabel">
+            Status:
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="status" disabled>
+                Select Status
+              </option>
+              <option value="work">Work</option>
+              <option value="holiday">Holiday</option>
+              <option value="sick-day">Sick Day</option>
+            </select>
+          </label>
+        </Box>
 
-          {/* Save Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-            {!clockSelector && !calendarSelector && (
-              <Button variant="contained" onClick={handleSave}>
-                Save
-              </Button>
-            )}
-          </Box>
+        {/* Error Display */}
+        {error && <span className="errorSpan">{error}</span>}
 
-          {/* Clock Selector */}
-          {clockSelector && (
-            <div className="time-selector-overlay">
-              <TimeSelector
-                onTimeSelect={handleTimeSelect}
-                closeTimeSelector={() => setClockSelector(false)}
-                initialTime={formCheckOut.timestamp}
-              />
-            </div>
-          )}
-
-          {/* Calendar Selector */}
-          {calendarSelector && (
-            <div className="time-selector-overlay">
-              <CalendarSelector
-                onDateSelect={handleDateSelect}
-                onClose={() => setCalendarSelector(false)}
-                minDate={editingLog === "check-out" ? minCheckOutDate : null}
-              />
-            </div>
+        {/* Save Button */}
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          {!clockSelector && !calendarSelector && (
+            <Button variant="contained" onClick={handleSave}>
+              Save
+            </Button>
           )}
         </Box>
-      </Modal>
-    </>
+
+        {/* Clock Selector */}
+        {clockSelector && (
+          <div className="time-selector-overlay">
+            <TimeSelector
+              onTimeSelect={handleTimeSelect}
+              closeTimeSelector={() => setClockSelector(false)}
+              initialTime={formCheckOut.timestamp}
+            />
+          </div>
+        )}
+
+        {/* Calendar Selector */}
+        {calendarSelector && (
+          <div className="time-selector-overlay">
+            <CalendarSelector
+              onDateSelect={handleDateSelect}
+              onClose={() => setCalendarSelector(false)}
+              minDate={editingLog === "check-out" ? minCheckOutDate : null}
+            />
+          </div>
+        )}
+      </Box>
+    </Modal>
   );
 }

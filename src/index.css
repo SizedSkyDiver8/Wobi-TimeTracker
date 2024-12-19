@@ -382,11 +382,19 @@ h1 {
 }
 
 .editLabel {
-  display: inline-block;
+  display: flex;
   font-size: x-large;
   margin-top: 10px;
   font-weight: bold;
   width: 100%;
+}
+
+.calendar-icon,
+.clock-icon {
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  margin-left: 10px;
 }
 
 #modal-modal-title {
@@ -742,7 +750,6 @@ select {
   background-image: url("./assets/sort-up.png");
 }
 
-/* Weak Password */
 .inputContainer.weak input {
   border: 2px solid rgb(255, 15, 15);
   box-shadow: 0 0 10px rgb(255, 0, 0);
@@ -762,7 +769,6 @@ select {
   font-size: larger;
 }
 
-/* Strong Password */
 .inputContainer.strong input {
   border: 2px solid rgb(19, 229, 19);
   box-shadow: 0 0 10px rgb(9, 230, 9);
@@ -779,4 +785,8 @@ select {
   text-align: left;
   font-size: 14px;
   transition: color 0.3s ease;
+}
+
+.input-Timestamp {
+  width: 175px;
 }

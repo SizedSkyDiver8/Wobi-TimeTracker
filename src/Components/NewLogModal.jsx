@@ -7,6 +7,8 @@ import TimeSelector from "./TimeSelector";
 import CalendarSelector from "./CalendarSelector";
 import close from "../assets/close.png";
 import dayjs from "dayjs";
+import calendar from "../assets/calendar.png";
+import clock from "../assets/clock.png";
 
 const style = {
   position: "absolute",
@@ -23,17 +25,20 @@ const style = {
 export default function NewLogModal({ openModal, closeModal, addNewLog }) {
   const [users, setUsers] = useState([]);
   const [clockSelector, setClockSelector] = useState(false);
+  const [calendarSelector, setCalendarSelector] = useState(false);
   const [editingLog, setEditingLog] = useState(""); // "check-in" or "check-out"
   const [error, setError] = useState("");
   const [openCalendar, setOpenCalendar] = useState(false);
-  const [calendarFor, setCalendarFor] = useState(""); // "check-in" or "check-out"
-  const [status, setStatus] = useState("status"); // State for Check-Out status
+  const [calendarFor, setCalendarFor] = useState("");
+  const [status, setStatus] = useState("status");
+  const [minCheckOutDate, setMinCheckOutDate] = useState(dayjs());
 
   const [formCheckIn, setFormCheckIn] = useState({
     username: "",
     type: "check-in",
     timestamp: "",
     date: "",
+    status: "",
   });
 
   const [formCheckOut, setFormCheckOut] = useState({
@@ -41,6 +46,7 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
     type: "check-out",
     timestamp: "",
     date: "",
+    status: "",
   });
 
   // Fetch users
@@ -76,13 +82,22 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
   }, [openModal]);
 
   const handleDateSelect = (selectedDate) => {
-    if (calendarFor === "check-in") {
+    if (editingLog === "check-in") {
       setFormCheckIn((prev) => ({ ...prev, date: selectedDate }));
       setFormCheckOut((prev) => ({ ...prev, date: "" }));
-    } else if (calendarFor === "check-out") {
+    } else if (editingLog === "check-out") {
       setFormCheckOut((prev) => ({ ...prev, date: selectedDate }));
     }
-    setOpenCalendar(false);
+    setCalendarSelector(false);
+  };
+
+  const validateTimestamp = (timestamp) => {
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
+    return timeRegex.test(timestamp);
+  };
+
+  const validateDate = (date) => {
+    return dayjs(date, "DD-MM-YYYY", true).isValid();
   };
 
   const handleTimeSelect = (selectedTime) => {
@@ -94,120 +109,40 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
     setClockSelector(false);
   };
 
-  // const handleSave = () => {
-  //   if (!formCheckIn.username || !formCheckIn.timestamp || !formCheckIn.date) {
-  //     setError("Check-In: All fields are required.");
-  //     return;
-  //   }
-  //   if (!formCheckOut.timestamp || !formCheckOut.date) {
-  //     setError("Check-Out: All fields are required.");
-  //     return;
-  //   }
-  //   if (!status || status === "status") {
-  //     setError("Check-Out: Please select a status.");
-  //     return;
-  //   }
-  //   const checkInDateTime = dayjs(
-  //     `${formCheckIn.date} ${formCheckIn.timestamp}`,
-  //     "DD-MM-YYYY HH:mm:ss"
-  //   );
-  //   const checkOutDateTime = dayjs(
-  //     `${formCheckOut.date} ${formCheckOut.timestamp}`,
-  //     "DD-MM-YYYY HH:mm:ss"
-  //   );
-  //   if (checkOutDateTime.isBefore(checkInDateTime)) {
-  //     setError(
-  //       "Invalid Check-Out time: Check-Out must be later than Check-In."
-  //     );
-  //     return;
-  //   }
-  //   setError(""); // Clear error
-  //   addNewLog(formCheckIn);
-  //   addNewLog({ ...formCheckOut, status }); // Include status in Check-Out log
-  //   closeModal();
-  // };
-  // const handleSave = async () => {
-  //   if (!formCheckIn.username || !formCheckIn.timestamp || !formCheckIn.date) {
-  //     setError("Check-In: All fields are required.");
-  //     return;
-  //   }
-  //   if (!formCheckOut.timestamp || !formCheckOut.date) {
-  //     setError("Check-Out: All fields are required.");
-  //     return;
-  //   }
-  //   if (!status || status === "status") {
-  //     setError("Check-Out: Please select a status.");
-  //     return;
-  //   }
-
-  //   const checkInDateTime = dayjs(
-  //     `${formCheckIn.date} ${formCheckIn.timestamp}`,
-  //     "DD-MM-YYYY HH:mm:ss"
-  //   );
-  //   const checkOutDateTime = dayjs(
-  //     `${formCheckOut.date} ${formCheckOut.timestamp}`,
-  //     "DD-MM-YYYY HH:mm:ss"
-  //   );
-  //   if (checkOutDateTime.isBefore(checkInDateTime)) {
-  //     setError(
-  //       "Invalid Check-Out time: Check-Out must be later than Check-In."
-  //     );
-  //     return;
-  //   }
-
-  //   setError(""); // Clear any existing errors
-
-  //   try {
-  //     // First POST request: Check-In
-  //     addNewLog({ ...formCheckIn, status });
-  //     addNewLog({ ...formCheckOut, status });
-
-  //     if (!checkInResponse.ok) {
-  //       const checkInError = await checkInResponse.json();
-  //       setError(checkInError.message || "Failed to add Check-In log.");
-  //       return;
-  //     }
-
-  //     // Second POST request: Check-Out
-  //     const checkOutResponse = await fetch("http://localhost:3001/AddLog", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ ...formCheckOut, status }), // Include status in Check-Out log
-  //     });
-
-  //     if (!checkOutResponse.ok) {
-  //       const checkOutError = await checkOutResponse.json();
-  //       setError(checkOutError.message || "Failed to add Check-Out log.");
-  //       return;
-  //     }
-
-  //     // Close modal after successful addition
-  //     closeModal();
-  //   } catch (error) {
-  //     console.error("Error saving logs:", error);
-  //     setError("An unexpected error occurred. Please try again.");
-  //   }
-  // };
   const handleSave = async () => {
-    if (!formCheckIn.username || !formCheckIn.timestamp || !formCheckIn.date) {
-      setError("Check-In: All fields are required.");
+    const formatTime = (time) => {
+      if (/^\d{2}:\d{2}$/.test(time)) {
+        return `${time}:00`;
+      }
+      return time;
+    };
+    const formattedCheckInTime = formatTime(formCheckIn.timestamp);
+    const formattedCheckOutTime = formatTime(formCheckOut.timestamp);
+    if (
+      !formCheckIn.username ||
+      !validateTimestamp(formattedCheckInTime) ||
+      !validateDate(formCheckIn.date)
+    ) {
+      setError("Check-In: All fields are required and must be valid.");
       return;
     }
-    if (!formCheckOut.timestamp || !formCheckOut.date) {
-      setError("Check-Out: All fields are required.");
+    if (
+      !validateTimestamp(formattedCheckOutTime) ||
+      !validateDate(formCheckOut.date)
+    ) {
+      setError("Check-Out: All fields are required and must be valid.");
       return;
     }
     if (!status || status === "status") {
       setError("Check-Out: Please select a status.");
       return;
     }
-
     const checkInDateTime = dayjs(
-      `${formCheckIn.date} ${formCheckIn.timestamp}`,
+      `${formCheckIn.date} ${formattedCheckInTime}`,
       "DD-MM-YYYY HH:mm:ss"
     );
     const checkOutDateTime = dayjs(
-      `${formCheckOut.date} ${formCheckOut.timestamp}`,
+      `${formCheckOut.date} ${formattedCheckOutTime}`,
       "DD-MM-YYYY HH:mm:ss"
     );
     if (checkOutDateTime.isBefore(checkInDateTime)) {
@@ -216,14 +151,21 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
       );
       return;
     }
-
-    setError(""); // Clear any existing errors
-
+    setError("");
     try {
-      // POST both logs sequentially
-      await addNewLog({ ...formCheckIn, type: "check-in", status });
-      await addNewLog({ ...formCheckOut, type: "check-out", status });
-      closeModal(); // Close the modal after successful addition
+      await addNewLog({
+        ...formCheckIn,
+        type: "check-in",
+        timestamp: formattedCheckInTime,
+        status,
+      });
+      await addNewLog({
+        ...formCheckOut,
+        type: "check-out",
+        timestamp: formattedCheckOutTime,
+        status,
+      });
+      closeModal();
     } catch (error) {
       console.error("Error saving logs:", error);
       setError("An unexpected error occurred. Please try again.");
@@ -288,9 +230,17 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
             <label className="editLabel">
               Timestamp:
               <input
+                className="input-Timestamp"
                 type="text"
                 value={formCheckIn.timestamp}
-                readOnly
+                onChange={(e) =>
+                  setFormCheckIn({ ...formCheckIn, timestamp: e.target.value })
+                }
+                autoComplete="off"
+              />
+              <img
+                src={clock}
+                className="clock-icon"
                 onClick={() => {
                   setEditingLog("check-in");
                   setClockSelector(true);
@@ -303,10 +253,17 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
               <input
                 type="text"
                 value={formCheckIn.date}
-                readOnly
+                onChange={(e) =>
+                  setFormCheckIn({ ...formCheckIn, date: e.target.value })
+                }
+                autoComplete="off"
+              />
+              <img
+                src={calendar}
+                className="calendar-icon"
                 onClick={() => {
-                  setCalendarFor("check-in");
-                  setOpenCalendar(true);
+                  setEditingLog("check-in");
+                  setCalendarSelector(true);
                 }}
               />
             </label>
@@ -320,9 +277,20 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
             <label className="editLabel">
               Timestamp:
               <input
+                className="input-Timestamp"
                 type="text"
                 value={formCheckOut.timestamp}
-                readOnly
+                onChange={(e) =>
+                  setFormCheckOut({
+                    ...formCheckOut,
+                    timestamp: e.target.value,
+                  })
+                }
+                autoComplete="off"
+              />
+              <img
+                src={clock}
+                className="clock-icon"
                 onClick={() => {
                   setEditingLog("check-out");
                   setClockSelector(true);
@@ -335,10 +303,17 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
               <input
                 type="text"
                 value={formCheckOut.date}
-                readOnly
+                onChange={(e) =>
+                  setFormCheckOut({ ...formCheckOut, date: e.target.value })
+                }
+                autoComplete="off"
+              />
+              <img
+                src={calendar}
+                className="calendar-icon"
                 onClick={() => {
-                  setCalendarFor("check-out");
-                  setOpenCalendar(true);
+                  setEditingLog("check-out");
+                  setCalendarSelector(true);
                 }}
               />
             </label>
@@ -389,16 +364,14 @@ export default function NewLogModal({ openModal, closeModal, addNewLog }) {
       )}
 
       {/* Calendar Selector */}
-      {openCalendar && (
-        <CalendarSelector
-          onDateSelect={handleDateSelect}
-          onClose={() => setOpenCalendar(false)}
-          minDate={
-            calendarFor === "check-out" && formCheckIn.date
-              ? dayjs(formCheckIn.date, "DD-MM-YYYY")
-              : null
-          }
-        />
+      {calendarSelector && (
+        <div className="time-selector-overlay">
+          <CalendarSelector
+            onDateSelect={handleDateSelect}
+            onClose={() => setCalendarSelector(false)}
+            minDate={editingLog === "check-out" ? minCheckOutDate : null}
+          />
+        </div>
       )}
     </>
   );

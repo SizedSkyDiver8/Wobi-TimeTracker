@@ -31,10 +31,13 @@ Make sure you have the following installed on your system:
    `cd ./backend`
 
    Install the dependencies for the fronted:
-   `npm install express`
-   `npm install body-parser`
-   `npm install cors`
-   `npm install axios`
+
+   ```bash
+   npm install express
+   npm install body-parser
+   npm install cors
+   npm install axios
+   ```
 
 ### Configuration
 
